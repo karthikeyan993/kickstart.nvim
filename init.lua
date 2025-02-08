@@ -156,6 +156,13 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
+-- Set tab width to 2 spaces
+vim.o.tabstop = 2       -- Number of spaces a tab counts for
+vim.o.shiftwidth = 2    -- Number of spaces for autoindent
+vim.o.softtabstop = 2   -- Number of spaces for <Tab> and <Backspace>
+vim.o.expandtab = true  -- Convert tabs to spaces
+
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
