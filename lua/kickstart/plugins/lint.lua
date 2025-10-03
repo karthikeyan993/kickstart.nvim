@@ -6,6 +6,11 @@ return {
     config = function()
       local lint = require 'lint'
       lint.linters_by_ft = {
+        lua = {'luacheck'},
+        javascript = {'eslint_d'},
+        typescript = {'eslint_d'},
+        c = {'clang-tidy'},
+        go = {'golangci-lint'},
         markdown = { 'markdownlint' },
       }
 
