@@ -7,10 +7,10 @@ return {
       local lint = require 'lint'
 
       lint.linters_by_ft = {
-        lua = {'luacheck'},
-        javascript = {'eslint_d'},
-        typescript = {'eslint_d'},
-        c = {'clang-tidy'},
+        -- lua = {'luacheck'},
+        -- javascript = {'eslint_d'},
+        -- typescript = {'eslint_d'},
+        -- c = {'clang-tidy'},
         markdown = { 'markdownlint' },
       }
 
