@@ -6,11 +6,34 @@ return {
     config = function()
       local lint = require 'lint'
 
+      -- Configure golangci-lint (prefer PATH, fallback to GOPATH bin)
+      lint.linters.golangcilint.cmd = vim.fn.exepath 'golangci-lint'
+      if lint.linters.golangcilint.cmd == '' then
+        lint.linters.golangcilint.cmd = vim.fn.expand '$HOME/go/bin/golangci-lint'
+      end
+      local function go_mod_dir()
+        local bufname = vim.api.nvim_buf_get_name(0)
+        if bufname == '' then
+          return nil
+        end
+
+        local dir = vim.fn.fnamemodify(bufname, ':p:h')
+        local found = vim.fs.find('go.mod', { path = dir, upward = true })[1]
+        if found then
+          return vim.fn.fnamemodify(found, ':h')
+        end
+
+        return nil
+      end
+
       lint.linters_by_ft = {
+        go = { 'golangcilint' },
         -- lua = {'luacheck'},
-        -- javascript = {'eslint_d'},
-        -- typescript = {'eslint_d'},
-        -- c = {'clang-tidy'},
+        javascript = { 'eslint_d' },
+        javascriptreact = { 'eslint_d' },
+        typescript = { 'eslint_d' },
+        typescriptreact = { 'eslint_d' },
+        c = { 'clangtidy' },
         -- markdown = { 'markdownlint' }, -- Disabled: markdownlint not installed
       }
 
@@ -57,7 +80,14 @@ return {
           -- describe the hovered symbol using Markdown.
           -- Skip Netrw buffers to avoid conflicts
           if vim.bo.modifiable and vim.bo.filetype ~= 'netrw' then
-            lint.try_lint()
+            local opts = nil
+            if vim.bo.filetype == 'go' then
+              local root = go_mod_dir()
+              if root then
+                opts = { cwd = root }
+              end
+            end
+            lint.try_lint(nil, opts)
           end
         end,
       })

@@ -166,6 +166,15 @@ vim.o.scrolloff = 10
 -- See `:help 'confirm'`
 vim.o.confirm = true
 
+-- [[ Indentation Settings ]]
+-- Global defaults: Use spaces over tabs with industry-standard settings
+vim.o.expandtab = true -- Use spaces instead of tabs
+vim.o.tabstop = 4 -- Tab width is 4 spaces (display width)
+vim.o.softtabstop = 4 -- Number of spaces inserted when pressing Tab
+vim.o.shiftwidth = 4 -- Number of spaces for each indentation level
+vim.o.smartindent = true -- Smart auto-indenting when starting a new line
+vim.o.autoindent = true -- Copy indent from current line when starting a new line
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -209,6 +218,10 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
 
 vim.keymap.set('n', '<leader>e', ':Ex<CR>', { noremap = true, silent = true, desc = 'Open explorer' })
+
+-- Switch to previous buffer (alternate file)
+vim.keymap.set('n', '<leader>bb', '<C-^>', { desc = 'Switch to [b]ack [b]uffer' })
+
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
@@ -230,6 +243,149 @@ vim.api.nvim_create_autocmd('ColorScheme', {
     vim.api.nvim_set_hl(0, 'NormalFloat', { bg = 'none' })
     vim.api.nvim_set_hl(0, 'Visual', { bg = '#52574f', fg = 'none' })
     vim.api.nvim_set_hl(0, 'Whitespace', { fg = '#9ccfd8' })
+  end,
+})
+
+-- [[ Go: Auto-organize imports on save (goimports via gopls) ]]
+vim.api.nvim_create_autocmd('BufWritePre', {
+  pattern = '*.go',
+  callback = function()
+    local params = vim.lsp.util.make_range_params()
+    params.context = { only = { 'source.organizeImports' } }
+    local result = vim.lsp.buf_request_sync(0, 'textDocument/codeAction', params)
+    for cid, res in pairs(result or {}) do
+      for _, r in pairs(res.result or {}) do
+        if r.edit then
+          local enc = (vim.lsp.get_client_by_id(cid) or {}).offset_encoding or 'utf-16'
+          vim.lsp.util.apply_workspace_edit(r.edit, enc)
+        end
+      end
+    end
+  end,
+})
+
+-- [[ Language-Specific Indentation (Industry Standards) ]]
+-- Using spaces for all languages as per user preference
+
+-- C/C++: 2 spaces (LLVM/Google style, matches clang-format default)
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'c', 'cpp', 'h', 'hpp' },
+  callback = function()
+    vim.opt_local.tabstop = 2
+    vim.opt_local.softtabstop = 2
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.expandtab = true
+  end,
+})
+
+-- Python: 4 spaces (PEP 8 standard)
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'python',
+  callback = function()
+    vim.opt_local.tabstop = 4
+    vim.opt_local.softtabstop = 4
+    vim.opt_local.shiftwidth = 4
+    vim.opt_local.expandtab = true
+  end,
+})
+
+-- JavaScript/TypeScript/JSX/TSX: 2 spaces (industry standard)
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'json', 'jsonc' },
+  callback = function()
+    vim.opt_local.tabstop = 2
+    vim.opt_local.softtabstop = 2
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.expandtab = true
+  end,
+})
+
+-- Lua: 2 spaces (Neovim convention, as seen in this file)
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'lua',
+  callback = function()
+    vim.opt_local.tabstop = 2
+    vim.opt_local.softtabstop = 2
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.expandtab = true
+  end,
+})
+
+-- Go: Tabs (gofmt/official Go standard)
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'go',
+  callback = function()
+    vim.opt_local.tabstop = 8 -- Go standard: display tabs as 8 spaces wide
+    vim.opt_local.softtabstop = 0
+    vim.opt_local.shiftwidth = 8 -- Indent by 8 spaces (1 tab)
+    vim.opt_local.expandtab = false -- Use actual tab characters
+  end,
+})
+
+-- Rust: 4 spaces (rustfmt standard)
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'rust',
+  callback = function()
+    vim.opt_local.tabstop = 4
+    vim.opt_local.softtabstop = 4
+    vim.opt_local.shiftwidth = 4
+    vim.opt_local.expandtab = true
+  end,
+})
+
+-- HTML/CSS/SCSS: 2 spaces
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'html', 'css', 'scss', 'sass', 'less' },
+  callback = function()
+    vim.opt_local.tabstop = 2
+    vim.opt_local.softtabstop = 2
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.expandtab = true
+  end,
+})
+
+-- YAML/TOML/XML: 2 spaces
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'yaml', 'yml', 'toml', 'xml' },
+  callback = function()
+    vim.opt_local.tabstop = 2
+    vim.opt_local.softtabstop = 2
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.expandtab = true
+  end,
+})
+
+-- Shell scripts: 2 spaces
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'sh', 'bash', 'zsh', 'fish' },
+  callback = function()
+    vim.opt_local.tabstop = 2
+    vim.opt_local.softtabstop = 2
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.expandtab = true
+  end,
+})
+
+-- Markdown: 2 spaces
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'markdown', 'md' },
+  callback = function()
+    vim.opt_local.tabstop = 2
+    vim.opt_local.softtabstop = 2
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.expandtab = true
+  end,
+})
+
+-- Makefile: MUST use tabs (Makefiles require tabs)
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'make',
+  callback = function()
+    vim.opt_local.tabstop = 4
+    vim.opt_local.softtabstop = 0
+    vim.opt_local.shiftwidth = 4
+    vim.opt_local.expandtab = false -- Makefiles REQUIRE tabs
+    vim.opt_local.noexpandtab = true
   end,
 })
 
@@ -686,7 +842,9 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         clangd = {},
-        gopls = {},
+        gopls = {
+          cmd = { vim.fn.expand('$HOME/go/bin/gopls') },
+        },
         pyright = {},
         rust_analyzer = {
           settings = {
@@ -702,9 +860,10 @@ require('lazy').setup({
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
         --
-        -- But for many setups, the LSP (`ts_ls`) will work just fine
+        -- But for many setups, these LSPs will work just fine
+        html = {},
+        cssls = {},
         ts_ls = {},
-        --
 
         lua_ls = {
           -- cmd = { ... },
@@ -739,6 +898,11 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
         'rustfmt', -- Rust formatter
+        'clang-format', -- C/C++ formatter
+        'html-lsp', -- HTML language server
+        'css-lsp', -- CSS language server
+        'prettierd', -- JS/TS/HTML/CSS formatter
+        'eslint_d', -- JS/TS linter
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -779,7 +943,7 @@ require('lazy').setup({
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true }
+        local disable_filetypes = { cpp = true }
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else
@@ -792,6 +956,13 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         rust = { 'rustfmt' },
+        c = { 'clang-format' },
+        html = { 'prettierd', 'prettier', stop_after_first = true },
+        css = { 'prettierd', 'prettier', stop_after_first = true },
+        javascript = { 'prettierd', 'prettier', stop_after_first = true },
+        javascriptreact = { 'prettierd', 'prettier', stop_after_first = true },
+        typescript = { 'prettierd', 'prettier', stop_after_first = true },
+        typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -958,7 +1129,7 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'rust' },
+      ensure_installed = { 'bash', 'c', 'css', 'diff', 'go', 'html', 'javascript', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'rust', 'tsx', 'typescript', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -993,6 +1164,7 @@ require('lazy').setup({
   require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  require 'kickstart.plugins.render-markdown',
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
