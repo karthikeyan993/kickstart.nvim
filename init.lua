@@ -400,6 +400,17 @@ vim.api.nvim_create_autocmd('FileType', {
   end,
 })
 
+-- Java: 2 spaces (matches google-java-format default)
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'java',
+  callback = function()
+    vim.opt_local.tabstop = 2
+    vim.opt_local.softtabstop = 2
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.expandtab = true
+  end,
+})
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -550,12 +561,21 @@ require('lazy').setup({
       require('telescope').setup {
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
-        --
-        -- defaults = {
-        --   mappings = {
-        --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
-        --   },
-        -- },
+        defaults = {
+          file_ignore_patterns = {
+            -- Java/Gradle build artifacts
+            'build/',
+            '%.gradle/',
+            '%.class$',
+            '%.jar$',
+            -- Common noise
+            'node_modules/',
+            '%.git/',
+          },
+          -- mappings = {
+          --   i = { ['<c-enter>'] = 'to_fuzzy_refine' },
+          -- },
+        },
         -- pickers = {}
         extensions = {
           ['ui-select'] = { require('telescope.themes').get_dropdown() },
@@ -810,17 +830,30 @@ require('lazy').setup({
       --    :Mason
       --
       -- You can press `g?` for help in this menu.
-      local ensure_installed = vim.tbl_keys(servers or {})
-      vim.list_extend(ensure_installed, {
-        'lua_ls', -- Lua Language server
-        'stylua', -- Used to format Lua code
-        'rustfmt', -- Rust formatter
-        'clang-format', -- C/C++ formatter
-        'html-lsp', -- HTML language server
-        'css-lsp', -- CSS language server
-        'prettierd', -- JS/TS/HTML/CSS formatter
-        'eslint_d', -- JS/TS linter
-      })
+      local ensure_installed = {
+        -- LSP servers (Mason package names)
+        'clangd',
+        'gopls',
+        'pyright',
+        'rust-analyzer',
+        'typescript-language-server',
+        'html-lsp',
+        'css-lsp',
+        'lua-language-server',
+        'jdtls',
+
+        -- Formatters / linters
+        'stylua',
+        'rustfmt',
+        'clang-format',
+        'prettierd',
+        'eslint_d',
+        'google-java-format',
+
+        -- Java debug/test extras used by nvim-jdtls
+        'java-debug-adapter',
+        'java-test',
+      }
 
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -891,6 +924,7 @@ require('lazy').setup({
         lua = { 'stylua' },
         rust = { 'rustfmt' },
         c = { 'clang-format' },
+        java = { 'google-java-format' },
         html = { 'prettierd', 'prettier', stop_after_first = true },
         css = { 'prettierd', 'prettier', stop_after_first = true },
         javascript = { 'prettierd', 'prettier', stop_after_first = true },
@@ -1056,7 +1090,7 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'css', 'diff', 'go', 'html', 'javascript', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'rust', 'tsx', 'typescript', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'css', 'diff', 'go', 'html', 'java', 'javascript', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'rust', 'tsx', 'typescript', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {

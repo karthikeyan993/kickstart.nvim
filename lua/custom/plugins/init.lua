@@ -53,6 +53,7 @@ return {
           names = false,
           tailwind = true,
         },
+        suppress_deprecation = true,
       }
     end,
   },
