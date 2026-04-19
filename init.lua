@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
@@ -103,6 +103,8 @@ vim.o.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
 vim.o.relativenumber = true
+-- Catppuccin expects truecolor support for accurate highlights
+vim.o.termguicolors = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
@@ -252,23 +254,50 @@ vim.api.nvim_create_autocmd('ColorScheme', {
   callback = function()
     vim.api.nvim_set_hl(0, 'Normal', { bg = 'none' })
     vim.api.nvim_set_hl(0, 'NormalFloat', { bg = 'none' })
-    vim.api.nvim_set_hl(0, 'Visual', { bg = '#52574f', fg = 'none' })
-    vim.api.nvim_set_hl(0, 'Whitespace', { fg = '#9ccfd8' })
+    vim.api.nvim_set_hl(0, 'FloatBorder', { fg = '#89b4fa', bg = 'none' })
+    vim.api.nvim_set_hl(0, 'LineNr', { fg = '#7f849c', bg = 'none' })
+    vim.api.nvim_set_hl(0, 'LineNrAbove', { fg = '#6c7086', bg = 'none' })
+    vim.api.nvim_set_hl(0, 'LineNrBelow', { fg = '#6c7086', bg = 'none' })
+    vim.api.nvim_set_hl(0, 'CursorLine', { bg = '#313244' })
+    vim.api.nvim_set_hl(0, 'CursorLineNr', { fg = '#f9e2af' })
+    vim.api.nvim_set_hl(0, 'Visual', { bg = '#45475a', fg = 'none' })
+    vim.api.nvim_set_hl(0, 'Whitespace', { fg = '#6c7086' })
+    vim.api.nvim_set_hl(0, 'IndentBlanklineChar', { fg = '#74c7ec' })
+    vim.api.nvim_set_hl(0, 'IndentBlanklineContextChar', { fg = '#89b4fa' })
+    vim.api.nvim_set_hl(0, 'IndentBlanklineContextStart', { sp = '#89b4fa', underline = true })
+    vim.api.nvim_set_hl(0, 'IndentBlanklineScopeChar', { fg = '#74c7ec' })
   end,
 })
 
 -- [[ Go: Auto-organize imports on save (goimports via gopls) ]]
+local function get_go_lsp_client(bufnr)
+  local clients = vim.lsp.get_clients { bufnr = bufnr, name = 'gopls' }
+  if #clients > 0 then
+    return clients[1]
+  end
+  clients = vim.lsp.get_clients { bufnr = bufnr }
+  return clients[1]
+end
+
 vim.api.nvim_create_autocmd('BufWritePre', {
   pattern = '*.go',
-  callback = function()
-    local params = vim.lsp.util.make_range_params()
+  callback = function(args)
+    local client = get_go_lsp_client(args.buf)
+    if not client or not client:supports_method('textDocument/codeAction', args.buf) then
+      return
+    end
+
+    local params = vim.lsp.util.make_range_params(0, client.offset_encoding or 'utf-16')
     params.context = { only = { 'source.organizeImports' } }
-    local result = vim.lsp.buf_request_sync(0, 'textDocument/codeAction', params)
+    local result = vim.lsp.buf_request_sync(args.buf, 'textDocument/codeAction', params, 1000)
     for cid, res in pairs(result or {}) do
-      for _, r in pairs(res.result or {}) do
-        if r.edit then
+      for _, action in pairs(res.result or {}) do
+        if action.edit then
           local enc = (vim.lsp.get_client_by_id(cid) or {}).offset_encoding or 'utf-16'
-          vim.lsp.util.apply_workspace_edit(r.edit, enc)
+          vim.lsp.util.apply_workspace_edit(action.edit, enc)
+        end
+        if action.command then
+          vim.lsp.buf.execute_command(action.command)
         end
       end
     end
@@ -396,7 +425,6 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.opt_local.softtabstop = 0
     vim.opt_local.shiftwidth = 4
     vim.opt_local.expandtab = false -- Makefiles REQUIRE tabs
-    vim.opt_local.noexpandtab = true
   end,
 })
 
@@ -791,12 +819,18 @@ require('lazy').setup({
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
       --  See `:help lsp-config` for information about keys and how to configure
+      local gopls_cmd = vim.fn.exepath 'gopls'
+      if gopls_cmd == '' then
+        local mason_gopls = vim.fn.stdpath 'data' .. '/mason/bin/gopls'
+        if vim.uv.fs_stat(mason_gopls) then
+          gopls_cmd = mason_gopls
+        end
+      end
+
       ---@type table<string, vim.lsp.Config>
       local servers = {
         clangd = {},
-        gopls = {
-          cmd = { vim.fn.expand('$HOME/go/bin/gopls') },
-        },
+        gopls = gopls_cmd ~= '' and { cmd = { gopls_cmd } } or {},
         pyright = {},
         rust_analyzer = {
           settings = {
@@ -864,10 +898,10 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         -- Formatters / linters
         'stylua',
-        'rustfmt',
         'clang-format',
         'prettierd',
         'eslint_d',
+        'golangci-lint',
         'google-java-format',
 
         -- Java language tooling used by nvim-jdtls
@@ -917,6 +951,7 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        go = { 'gofmt' },
         rust = { 'rustfmt' },
         c = { 'clang-format' },
         java = { 'google-java-format' },
@@ -1028,15 +1063,23 @@ require('lazy').setup({
     },
   },
 
-  { -- Rose Pine colorscheme
-    'rose-pine/neovim',
-    name = 'rose-pine',
+  { -- Catppuccin colorscheme
+    'catppuccin/nvim',
+    name = 'catppuccin',
     priority = 1000,
     config = function()
-      require('rose-pine').setup {
-        disable_background = true,
+      require('catppuccin').setup {
+        flavour = 'mocha',
+        transparent_background = true,
+        term_colors = true,
+        integrations = {
+          gitsigns = true,
+          mini = true,
+          telescope = true,
+          which_key = true,
+        },
       }
-      vim.cmd.colorscheme 'rose-pine'
+      vim.cmd.colorscheme 'catppuccin-mocha'
     end,
   },
 

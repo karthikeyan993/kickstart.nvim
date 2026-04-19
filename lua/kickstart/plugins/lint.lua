@@ -8,10 +8,22 @@ return {
     config = function()
       local lint = require 'lint'
 
-      -- Configure golangci-lint (prefer PATH, fallback to GOPATH bin)
-      lint.linters.golangcilint.cmd = vim.fn.exepath 'golangci-lint'
-      if lint.linters.golangcilint.cmd == '' then
-        lint.linters.golangcilint.cmd = vim.fn.expand '$HOME/go/bin/golangci-lint'
+      -- Configure golangci-lint (prefer PATH, then Mason, then GOPATH bin)
+      local golangci_cmd = vim.fn.exepath 'golangci-lint'
+      if golangci_cmd == '' then
+        local mason_cmd = vim.fn.stdpath 'data' .. '/mason/bin/golangci-lint'
+        if vim.uv.fs_stat(mason_cmd) then
+          golangci_cmd = mason_cmd
+        end
+      end
+      if golangci_cmd == '' then
+        local gopath_cmd = vim.fn.expand '$HOME/go/bin/golangci-lint'
+        if vim.uv.fs_stat(gopath_cmd) then
+          golangci_cmd = gopath_cmd
+        end
+      end
+      if golangci_cmd ~= '' then
+        lint.linters.golangcilint.cmd = golangci_cmd
       end
       local function go_mod_dir()
         local bufname = vim.api.nvim_buf_get_name(0)
@@ -28,8 +40,13 @@ return {
         return nil
       end
 
+      local go_linters = {}
+      if golangci_cmd ~= '' then
+        go_linters = { 'golangcilint' }
+      end
+
       lint.linters_by_ft = {
-        go = { 'golangcilint' },
+        go = go_linters,
         -- lua = {'luacheck'},
         javascript = { 'eslint_d' },
         javascriptreact = { 'eslint_d' },
@@ -74,9 +91,9 @@ return {
       -- Create autocommand which carries out the actual linting
       -- on the specified events.
       local lint_augroup = vim.api.nvim_create_augroup('lint', { clear = true })
-      vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWritePost', 'InsertLeave' }, {
+      vim.api.nvim_create_autocmd({ 'BufWritePost', 'InsertLeave' }, {
         group = lint_augroup,
-        callback = function()
+        callback = function(args)
           -- Only run the linter in buffers that you can modify in order to
           -- avoid superfluous noise, notably within the handy LSP pop-ups that
           -- describe the hovered symbol using Markdown.
@@ -84,10 +101,16 @@ return {
           if vim.bo.modifiable and vim.bo.filetype ~= 'netrw' then
             local opts = nil
             if vim.bo.filetype == 'go' then
+              -- Run Go linting on save only to avoid parser noise while creating files.
+              if args.event ~= 'BufWritePost' or golangci_cmd == '' then
+                return
+              end
               local root = go_mod_dir()
               if root then
                 opts = { cwd = root }
               end
+              lint.try_lint('golangcilint', opts)
+              return
             end
             lint.try_lint(nil, opts)
           end
