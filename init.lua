@@ -265,6 +265,8 @@ vim.api.nvim_create_autocmd('ColorScheme', {
     vim.api.nvim_set_hl(0, 'CursorLineNr', { fg = '#f9e2af' })
     vim.api.nvim_set_hl(0, 'Visual', { bg = '#45475a', fg = 'none' })
     vim.api.nvim_set_hl(0, 'Whitespace', { fg = '#6c7086' })
+    vim.api.nvim_set_hl(0, 'IblIndent', { fg = '#7f849c' })
+    vim.api.nvim_set_hl(0, 'IblScope', { fg = '#89b4fa' })
     vim.api.nvim_set_hl(0, 'IndentBlanklineChar', { fg = '#74c7ec' })
     vim.api.nvim_set_hl(0, 'IndentBlanklineContextChar', { fg = '#89b4fa' })
     vim.api.nvim_set_hl(0, 'IndentBlanklineContextStart', { sp = '#89b4fa', underline = true })
