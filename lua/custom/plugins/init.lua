@@ -25,8 +25,40 @@ return {
   -- Web development quality-of-life plugins
   {
     'windwp/nvim-ts-autotag',
-    event = 'VeryLazy',
-    opts = {},
+    event = { 'BufReadPre', 'BufNewFile' },
+    dependencies = { 'nvim-treesitter/nvim-treesitter' },
+    opts = function()
+      local filetypes = {
+        'html',
+        'xml',
+        'javascript',
+        'javascriptreact',
+        'typescript',
+        'typescriptreact',
+        'vue',
+        'svelte',
+        'astro',
+        'php',
+      }
+      local installed = {}
+      for _, parser in ipairs(require('nvim-treesitter').get_installed 'parsers') do
+        installed[parser] = true
+      end
+
+      local per_filetype = {}
+      for _, filetype in ipairs(filetypes) do
+        local language = vim.treesitter.language.get_lang(filetype) or filetype
+        if not installed[language] then
+          per_filetype[filetype] = {
+            enable_close = false,
+            enable_close_on_slash = false,
+            enable_rename = false,
+          }
+        end
+      end
+
+      return { per_filetype = per_filetype }
+    end,
   },
   {
     'mattn/emmet-vim',
