@@ -7,6 +7,33 @@
 return {
   { 'tpope/vim-fugitive' },
 
+  -- Diffview: VSCode-like "Source Control" panel for viewing all changes
+  {
+    'sindrets/diffview.nvim',
+    cmd = { 'DiffviewOpen', 'DiffviewClose', 'DiffviewToggleFiles', 'DiffviewFocusFiles', 'DiffviewFileHistory' },
+    keys = {
+      { '<leader>gv', '<cmd>DiffviewOpen<CR>', desc = '[G]it diff [V]iew' },
+      { '<leader>gx', '<cmd>DiffviewClose<CR>', desc = '[G]it diff close' },
+      { '<leader>gh', '<cmd>DiffviewFileHistory %<CR>', desc = '[G]it file [H]istory' },
+    },
+  },
+
+  -- Supermaven AI completion
+  {
+    'supermaven-inc/supermaven-nvim',
+    config = function()
+      require('supermaven-nvim').setup {}
+    end,
+  },
+
+  -- Amp Plugin
+  {
+    'sourcegraph/amp.nvim',
+    branch = 'main',
+    lazy = false,
+    opts = { auto_start = true, log_level = 'info' },
+  },
+
   -- Test runner for Go and other languages
   {
     'vim-test/vim-test',
