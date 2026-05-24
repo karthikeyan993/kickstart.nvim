@@ -237,6 +237,12 @@ vim.keymap.set('n', '<leader>e', ':Ex<CR>', { noremap = true, silent = true, des
 -- Switch to previous buffer (alternate file)
 vim.keymap.set('n', '<leader>bb', '<C-^>', { desc = 'Switch to [b]ack [b]uffer' })
 
+-- Toggle light/dark background (catppuccin auto-swaps latte <-> mocha)
+vim.keymap.set('n', '<leader>tb', function()
+  vim.o.background = vim.o.background == 'dark' and 'light' or 'dark'
+  vim.notify('background = ' .. vim.o.background)
+end, { desc = '[T]oggle [b]ackground (light/dark)' })
+
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
@@ -252,25 +258,58 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 vim.api.nvim_create_autocmd('ColorScheme', {
   pattern = '*',
   callback = function()
-    vim.api.nvim_set_hl(0, 'Normal', { bg = 'none' })
-    vim.api.nvim_set_hl(0, 'NormalFloat', { bg = 'none' })
-    vim.api.nvim_set_hl(0, 'FloatBorder', { fg = '#89b4fa', bg = 'none' })
-    vim.api.nvim_set_hl(0, 'SignColumn', { fg = '#89b4fa', bg = 'none' })
-    vim.api.nvim_set_hl(0, 'FoldColumn', { fg = '#89b4fa', bg = 'none' })
-    vim.api.nvim_set_hl(0, 'EndOfBuffer', { fg = '#7f849c', bg = 'none' })
-    vim.api.nvim_set_hl(0, 'LineNr', { fg = '#7f849c', bg = 'none' })
-    vim.api.nvim_set_hl(0, 'LineNrAbove', { fg = '#6c7086', bg = 'none' })
-    vim.api.nvim_set_hl(0, 'LineNrBelow', { fg = '#6c7086', bg = 'none' })
-    vim.api.nvim_set_hl(0, 'CursorLine', { bg = '#45475a' })
-    vim.api.nvim_set_hl(0, 'CursorLineNr', { fg = '#f9e2af' })
-    vim.api.nvim_set_hl(0, 'Visual', { bg = '#45475a', fg = 'none' })
-    vim.api.nvim_set_hl(0, 'Whitespace', { fg = '#6c7086' })
-    vim.api.nvim_set_hl(0, 'IblIndent', { fg = '#7f849c' })
-    vim.api.nvim_set_hl(0, 'IblScope', { fg = '#89b4fa' })
-    vim.api.nvim_set_hl(0, 'IndentBlanklineChar', { fg = '#74c7ec' })
-    vim.api.nvim_set_hl(0, 'IndentBlanklineContextChar', { fg = '#89b4fa' })
-    vim.api.nvim_set_hl(0, 'IndentBlanklineContextStart', { sp = '#89b4fa', underline = true })
-    vim.api.nvim_set_hl(0, 'IndentBlanklineScopeChar', { fg = '#74c7ec' })
+    -- Palette switches with background; values borrowed from Catppuccin
+    -- mocha (dark) / latte (light) so overrides stay readable in both.
+    local dark = vim.o.background == 'dark'
+    local p = dark
+        and {
+          normal_bg = 'none',
+          accent = '#89b4fa', -- blue
+          dim = '#7f849c',
+          dimmer = '#6c7086',
+          cursorline = '#45475a',
+          cursorline_nr = '#f9e2af',
+          visual = '#45475a',
+          whitespace = '#6c7086',
+          ibl = '#7f849c',
+          ibl_scope = '#89b4fa',
+          ibl_char = '#74c7ec',
+        }
+      or {
+          normal_bg = nil, -- keep colorscheme's solid latte bg
+          accent = '#1e66f5', -- latte blue
+          dim = '#8c8fa1', -- overlay1
+          dimmer = '#9ca0b0', -- overlay0
+          cursorline = '#dce0e8', -- crust — subtle band, fully readable
+          cursorline_nr = '#df8e1d', -- latte yellow
+          visual = '#bcc0cc', -- surface1
+          whitespace = '#acb0be', -- surface2
+          ibl = '#bcc0cc',
+          ibl_scope = '#1e66f5',
+          ibl_char = '#7287fd', -- lavender
+        }
+
+    if p.normal_bg then
+      vim.api.nvim_set_hl(0, 'Normal', { bg = p.normal_bg })
+      vim.api.nvim_set_hl(0, 'NormalFloat', { bg = p.normal_bg })
+    end
+    vim.api.nvim_set_hl(0, 'FloatBorder', { fg = p.accent, bg = p.normal_bg })
+    vim.api.nvim_set_hl(0, 'SignColumn', { fg = p.accent, bg = p.normal_bg })
+    vim.api.nvim_set_hl(0, 'FoldColumn', { fg = p.accent, bg = p.normal_bg })
+    vim.api.nvim_set_hl(0, 'EndOfBuffer', { fg = p.dim, bg = p.normal_bg })
+    vim.api.nvim_set_hl(0, 'LineNr', { fg = p.dim, bg = p.normal_bg })
+    vim.api.nvim_set_hl(0, 'LineNrAbove', { fg = p.dimmer, bg = p.normal_bg })
+    vim.api.nvim_set_hl(0, 'LineNrBelow', { fg = p.dimmer, bg = p.normal_bg })
+    vim.api.nvim_set_hl(0, 'CursorLine', { bg = p.cursorline })
+    vim.api.nvim_set_hl(0, 'CursorLineNr', { fg = p.cursorline_nr, bold = true })
+    vim.api.nvim_set_hl(0, 'Visual', { bg = p.visual })
+    vim.api.nvim_set_hl(0, 'Whitespace', { fg = p.whitespace })
+    vim.api.nvim_set_hl(0, 'IblIndent', { fg = p.ibl })
+    vim.api.nvim_set_hl(0, 'IblScope', { fg = p.ibl_scope })
+    vim.api.nvim_set_hl(0, 'IndentBlanklineChar', { fg = p.ibl_char })
+    vim.api.nvim_set_hl(0, 'IndentBlanklineContextChar', { fg = p.ibl_scope })
+    vim.api.nvim_set_hl(0, 'IndentBlanklineContextStart', { sp = p.ibl_scope, underline = true })
+    vim.api.nvim_set_hl(0, 'IndentBlanklineScopeChar', { fg = p.ibl_char })
   end,
 })
 
@@ -1069,14 +1108,15 @@ require('lazy').setup({
     },
   },
 
-  { -- Catppuccin colorscheme
+  { -- Catppuccin colorscheme (Latte = light variant, great for bright rooms)
     'catppuccin/nvim',
     name = 'catppuccin',
     priority = 1000,
     config = function()
       require('catppuccin').setup {
-        flavour = 'mocha',
-        transparent_background = true,
+        flavour = 'latte',
+        background = { light = 'latte', dark = 'mocha' },
+        transparent_background = false, -- solid bg reads better under fluorescent light
         term_colors = true,
         integrations = {
           gitsigns = true,
@@ -1085,7 +1125,28 @@ require('lazy').setup({
           which_key = true,
         },
       }
-      vim.cmd.colorscheme 'catppuccin-mocha'
+      vim.o.background = 'light'
+      vim.cmd.colorscheme 'catppuccin-latte'
+    end,
+  },
+
+  -- Alternate light colorschemes (swap with :colorscheme <name>)
+  --   :colorscheme tokyonight-day   -- crisp blue accents, high contrast
+  --   :colorscheme github_light     -- official GitHub light, max readability
+  --   :colorscheme catppuccin-latte -- warm beige, soft on the eyes (default)
+  {
+    'folke/tokyonight.nvim',
+    lazy = true,
+    priority = 900,
+    opts = { style = 'day' },
+  },
+  {
+    'projekt0n/github-nvim-theme',
+    lazy = true,
+    priority = 900,
+    name = 'github-theme',
+    config = function()
+      require('github-theme').setup {}
     end,
   },
 
