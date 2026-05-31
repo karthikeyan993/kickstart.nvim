@@ -255,15 +255,15 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   callback = function() vim.hl.on_yank() end,
 })
 
-vim.api.nvim_create_autocmd('ColorScheme', {
+vim.api.nvim_create_autocmd({ 'ColorScheme', 'VimEnter' }, {
   pattern = '*',
   callback = function()
-    -- Palette switches with background; values borrowed from Catppuccin
-    -- mocha (dark) / latte (light) so overrides stay readable in both.
+    -- Light mode matches Ghostty's local "github-light-soft" theme.
     local dark = vim.o.background == 'dark'
     local p = dark
         and {
           normal_bg = 'none',
+          normal_fg = nil,
           accent = '#89b4fa', -- blue
           dim = '#7f849c',
           dimmer = '#6c7086',
@@ -274,24 +274,29 @@ vim.api.nvim_create_autocmd('ColorScheme', {
           ibl = '#7f849c',
           ibl_scope = '#89b4fa',
           ibl_char = '#74c7ec',
+          supermaven = '#ffffff',
+          supermaven_bg = '#b0006d',
         }
       or {
-          normal_bg = nil, -- keep colorscheme's solid latte bg
-          accent = '#1e66f5', -- latte blue
-          dim = '#8c8fa1', -- overlay1
-          dimmer = '#9ca0b0', -- overlay0
-          cursorline = '#dce0e8', -- crust — subtle band, fully readable
-          cursorline_nr = '#df8e1d', -- latte yellow
-          visual = '#bcc0cc', -- surface1
-          whitespace = '#acb0be', -- surface2
-          ibl = '#bcc0cc',
-          ibl_scope = '#1e66f5',
-          ibl_char = '#7287fd', -- lavender
+          normal_bg = '#f6f8fa',
+          normal_fg = '#57606a',
+          accent = '#0969da',
+          dim = '#6e7781',
+          dimmer = '#8c959f',
+          cursorline = '#d8dee4',
+          cursorline_nr = '#0969da',
+          visual = '#d8dee4',
+          whitespace = '#8c959f',
+          ibl = '#d8dee4',
+          ibl_scope = '#0969da',
+          ibl_char = '#8250df',
+          supermaven = '#ffffff',
+          supermaven_bg = '#b0006d',
         }
 
     if p.normal_bg then
-      vim.api.nvim_set_hl(0, 'Normal', { bg = p.normal_bg })
-      vim.api.nvim_set_hl(0, 'NormalFloat', { bg = p.normal_bg })
+      vim.api.nvim_set_hl(0, 'Normal', { fg = p.normal_fg, bg = p.normal_bg })
+      vim.api.nvim_set_hl(0, 'NormalFloat', { fg = p.normal_fg, bg = p.normal_bg })
     end
     vim.api.nvim_set_hl(0, 'FloatBorder', { fg = p.accent, bg = p.normal_bg })
     vim.api.nvim_set_hl(0, 'SignColumn', { fg = p.accent, bg = p.normal_bg })
@@ -310,10 +315,16 @@ vim.api.nvim_create_autocmd('ColorScheme', {
     vim.api.nvim_set_hl(0, 'IndentBlanklineContextChar', { fg = p.ibl_scope })
     vim.api.nvim_set_hl(0, 'IndentBlanklineContextStart', { sp = p.ibl_scope, underline = true })
     vim.api.nvim_set_hl(0, 'IndentBlanklineScopeChar', { fg = p.ibl_char })
+    local suggestion_hl = { fg = p.supermaven, bg = p.supermaven_bg, bold = true, italic = true, nocombine = true }
+    vim.schedule(function()
+      vim.api.nvim_set_hl(0, 'SupermavenSuggestion', suggestion_hl)
+      vim.api.nvim_set_hl(0, 'CmpGhostText', suggestion_hl)
+      vim.api.nvim_set_hl(0, 'BlinkCmpGhostText', suggestion_hl)
+    end)
   end,
 })
 
--- [[ Go: Auto-organize imports on save (goimports via gopls) ]]
+-- [[ Go: Auto-organize imports on save via gopls ]]
 local function get_go_lsp_client(bufnr)
   local clients = vim.lsp.get_clients { bufnr = bufnr, name = 'gopls' }
   if #clients > 0 then
@@ -324,6 +335,7 @@ local function get_go_lsp_client(bufnr)
 end
 
 vim.api.nvim_create_autocmd('BufWritePre', {
+  group = vim.api.nvim_create_augroup('kickstart-go-organize-imports', { clear = true }),
   pattern = '*.go',
   callback = function(args)
     local client = get_go_lsp_client(args.buf)
@@ -348,11 +360,13 @@ vim.api.nvim_create_autocmd('BufWritePre', {
   end,
 })
 
--- [[ Language-Specific Indentation (Industry Standards) ]]
--- Using spaces for all languages as per user preference
+-- [[ Language-Specific Indentation ]]
+-- Match each language's standard formatter so manual edits and format-on-save agree.
+local indent_augroup = vim.api.nvim_create_augroup('kickstart-language-indent', { clear = true })
 
 -- C/C++: 2 spaces (LLVM/Google style, matches clang-format default)
 vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
   pattern = { 'c', 'cpp', 'h', 'hpp' },
   callback = function()
     vim.opt_local.tabstop = 2
@@ -364,6 +378,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
 -- Python: 4 spaces (PEP 8 standard)
 vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
   pattern = 'python',
   callback = function()
     vim.opt_local.tabstop = 4
@@ -373,8 +388,9 @@ vim.api.nvim_create_autocmd('FileType', {
   end,
 })
 
--- JavaScript/TypeScript/JSX/TSX: 2 spaces (industry standard)
+-- JavaScript/TypeScript/JSX/TSX/JSON: 2 spaces (Prettier default)
 vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
   pattern = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'json', 'jsonc' },
   callback = function()
     vim.opt_local.tabstop = 2
@@ -386,6 +402,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
 -- Lua: 2 spaces (Neovim convention, as seen in this file)
 vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
   pattern = 'lua',
   callback = function()
     vim.opt_local.tabstop = 2
@@ -397,6 +414,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
 -- Go: Tabs (gofmt/official Go standard)
 vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
   pattern = 'go',
   callback = function()
     vim.opt_local.tabstop = 8 -- Go standard: display tabs as 8 spaces wide
@@ -408,7 +426,20 @@ vim.api.nvim_create_autocmd('FileType', {
 
 -- Rust: 4 spaces (rustfmt standard)
 vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
   pattern = 'rust',
+  callback = function()
+    vim.opt_local.tabstop = 4
+    vim.opt_local.softtabstop = 4
+    vim.opt_local.shiftwidth = 4
+    vim.opt_local.expandtab = true
+  end,
+})
+
+-- Zig: 4 spaces (zig fmt standard)
+vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
+  pattern = { 'zig', 'zir' },
   callback = function()
     vim.opt_local.tabstop = 4
     vim.opt_local.softtabstop = 4
@@ -419,6 +450,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
 -- HTML/CSS/SCSS: 2 spaces
 vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
   pattern = { 'html', 'css', 'scss', 'sass', 'less' },
   callback = function()
     vim.opt_local.tabstop = 2
@@ -430,6 +462,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
 -- YAML/TOML/XML: 2 spaces
 vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
   pattern = { 'yaml', 'yml', 'toml', 'xml' },
   callback = function()
     vim.opt_local.tabstop = 2
@@ -441,6 +474,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
 -- Shell scripts: 2 spaces
 vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
   pattern = { 'sh', 'bash', 'zsh', 'fish' },
   callback = function()
     vim.opt_local.tabstop = 2
@@ -452,6 +486,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
 -- Markdown: 2 spaces
 vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
   pattern = { 'markdown', 'md' },
   callback = function()
     vim.opt_local.tabstop = 2
@@ -463,6 +498,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
 -- Makefile: MUST use tabs (Makefiles require tabs)
 vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
   pattern = 'make',
   callback = function()
     vim.opt_local.tabstop = 4
@@ -474,6 +510,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
 -- Java: 2 spaces (matches google-java-format default)
 vim.api.nvim_create_autocmd('FileType', {
+  group = indent_augroup,
   pattern = 'java',
   callback = function()
     vim.opt_local.tabstop = 2
@@ -998,14 +1035,16 @@ require('lazy').setup({
         lua = { 'stylua' },
         go = { 'gofmt' },
         rust = { 'rustfmt' },
+        zig = { 'zigfmt' },
+        zir = { 'zigfmt' },
         c = { 'clang-format' },
         java = { 'google-java-format' },
-        html = { 'prettierd', 'prettier', stop_after_first = true },
-        css = { 'prettierd', 'prettier', stop_after_first = true },
-        javascript = { 'prettierd', 'prettier', stop_after_first = true },
-        javascriptreact = { 'prettierd', 'prettier', stop_after_first = true },
-        typescript = { 'prettierd', 'prettier', stop_after_first = true },
-        typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
+        html = { 'prettierd' },
+        css = { 'prettierd' },
+        javascript = { 'prettierd' },
+        javascriptreact = { 'prettierd' },
+        typescript = { 'prettierd' },
+        typescriptreact = { 'prettierd' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -1035,12 +1074,12 @@ require('lazy').setup({
           -- `friendly-snippets` contains a variety of premade snippets.
           --    See the README about individual language/framework/plugin snippets:
           --    https://github.com/rafamadriz/friendly-snippets
-          -- {
-          --   'rafamadriz/friendly-snippets',
-          --   config = function()
-          --     require('luasnip.loaders.from_vscode').lazy_load()
-          --   end,
-          -- },
+          {
+            'rafamadriz/friendly-snippets',
+            config = function()
+              require('luasnip.loaders.from_vscode').lazy_load()
+            end,
+          },
         },
         opts = {},
       },
@@ -1108,16 +1147,47 @@ require('lazy').setup({
     },
   },
 
-  { -- Catppuccin colorscheme (Latte = light variant, great for bright rooms)
+  { -- Catppuccin colorscheme, available as an alternate with :colorscheme catppuccin-latte
     'catppuccin/nvim',
     name = 'catppuccin',
-    priority = 1000,
+    lazy = true,
+    priority = 900,
     config = function()
       require('catppuccin').setup {
         flavour = 'latte',
         background = { light = 'latte', dark = 'mocha' },
         transparent_background = false, -- solid bg reads better under fluorescent light
         term_colors = true,
+        color_overrides = {
+          latte = {
+            rosewater = '#9f6c24',
+            flamingo = '#ad4744',
+            pink = '#76508c',
+            mauve = '#6f4d83',
+            red = '#9f403e',
+            maroon = '#ad4744',
+            peach = '#8f5f1f',
+            yellow = '#9f6c24',
+            green = '#3f6f4f',
+            teal = '#456f68',
+            sky = '#4d7a72',
+            sapphire = '#4b6fb5',
+            blue = '#3f5f9f',
+            lavender = '#4b6fb5',
+            text = '#2f3740',
+            subtext1 = '#3f4852',
+            subtext0 = '#505962',
+            overlay2 = '#625b54',
+            overlay1 = '#6f675f',
+            overlay0 = '#837a70',
+            surface2 = '#c5bcb1',
+            surface1 = '#d8d0c5',
+            surface0 = '#e8e2d8',
+            base = '#f4f0e8',
+            mantle = '#eee8de',
+            crust = '#e8e2d8',
+          },
+        },
         integrations = {
           gitsigns = true,
           mini = true,
@@ -1125,15 +1195,13 @@ require('lazy').setup({
           which_key = true,
         },
       }
-      vim.o.background = 'light'
-      vim.cmd.colorscheme 'catppuccin-latte'
     end,
   },
 
   -- Alternate light colorschemes (swap with :colorscheme <name>)
   --   :colorscheme tokyonight-day   -- crisp blue accents, high contrast
-  --   :colorscheme github_light     -- official GitHub light, max readability
-  --   :colorscheme catppuccin-latte -- warm beige, soft on the eyes (default)
+  --   :colorscheme catppuccin-latte -- warm beige, soft on the eyes
+  --   :colorscheme github_light     -- matches Ghostty's github-light-soft theme (default)
   {
     'folke/tokyonight.nvim',
     lazy = true,
@@ -1142,11 +1210,102 @@ require('lazy').setup({
   },
   {
     'projekt0n/github-nvim-theme',
-    lazy = true,
-    priority = 900,
+    priority = 1000,
     name = 'github-theme',
     config = function()
-      require('github-theme').setup {}
+      local ghostty_github_light = {
+        bg = '#f6f8fa',
+        fg = '#57606a',
+        black = '#f6f8fa',
+        red = '#cf222e',
+        green = '#116329',
+        yellow = '#953800',
+        blue = '#0969da',
+        magenta = '#8250df',
+        cyan = '#1b7c83',
+        white = '#57606a',
+        bright_black = '#d8dee4',
+        bright_red = '#a40e26',
+        bright_green = '#1a7f37',
+        bright_yellow = '#9a6700',
+        bright_blue = '#218bff',
+        bright_magenta = '#a475f9',
+        bright_cyan = '#3192aa',
+        bright_white = '#24292f',
+        selection_bg = '#d8dee4',
+        selection_fg = '#24292f',
+      }
+
+      vim.g.terminal_color_0 = ghostty_github_light.black
+      vim.g.terminal_color_1 = ghostty_github_light.red
+      vim.g.terminal_color_2 = ghostty_github_light.green
+      vim.g.terminal_color_3 = ghostty_github_light.yellow
+      vim.g.terminal_color_4 = ghostty_github_light.blue
+      vim.g.terminal_color_5 = ghostty_github_light.magenta
+      vim.g.terminal_color_6 = ghostty_github_light.cyan
+      vim.g.terminal_color_7 = ghostty_github_light.white
+      vim.g.terminal_color_8 = ghostty_github_light.bright_black
+      vim.g.terminal_color_9 = ghostty_github_light.bright_red
+      vim.g.terminal_color_10 = ghostty_github_light.bright_green
+      vim.g.terminal_color_11 = ghostty_github_light.bright_yellow
+      vim.g.terminal_color_12 = ghostty_github_light.bright_blue
+      vim.g.terminal_color_13 = ghostty_github_light.bright_magenta
+      vim.g.terminal_color_14 = ghostty_github_light.bright_cyan
+      vim.g.terminal_color_15 = ghostty_github_light.bright_white
+
+      require('github-theme').setup {
+        options = {
+          transparent = false,
+        },
+        specs = {
+          github_light = {
+            bg0 = ghostty_github_light.bg,
+            bg1 = ghostty_github_light.bg,
+            bg2 = ghostty_github_light.selection_bg,
+            bg3 = ghostty_github_light.selection_bg,
+            fg1 = ghostty_github_light.fg,
+            fg2 = ghostty_github_light.bright_white,
+            fg3 = ghostty_github_light.white,
+            sel0 = ghostty_github_light.selection_bg,
+            sel1 = ghostty_github_light.selection_bg,
+            syntax = {
+              comment = ghostty_github_light.fg,
+              const = ghostty_github_light.magenta,
+              field = ghostty_github_light.blue,
+              func = ghostty_github_light.blue,
+              keyword = ghostty_github_light.red,
+              number = ghostty_github_light.magenta,
+              operator = ghostty_github_light.red,
+              string = ghostty_github_light.green,
+              type = ghostty_github_light.yellow,
+            },
+            diag = {
+              error = ghostty_github_light.red,
+              warn = ghostty_github_light.bright_yellow,
+              info = ghostty_github_light.blue,
+              hint = ghostty_github_light.fg,
+            },
+            git = {
+              add = ghostty_github_light.green,
+              removed = ghostty_github_light.red,
+              changed = ghostty_github_light.bright_yellow,
+            },
+          },
+        },
+        groups = {
+          github_light = {
+            Normal = { fg = ghostty_github_light.fg, bg = ghostty_github_light.bg },
+            NormalFloat = { fg = ghostty_github_light.fg, bg = ghostty_github_light.bg },
+            Visual = { fg = ghostty_github_light.selection_fg, bg = ghostty_github_light.selection_bg },
+            Cursor = { fg = ghostty_github_light.bg, bg = ghostty_github_light.fg },
+            CursorLine = { bg = ghostty_github_light.selection_bg },
+            CursorLineNr = { fg = ghostty_github_light.blue, bold = true },
+          },
+        },
+      }
+
+      vim.o.background = 'light'
+      vim.cmd.colorscheme 'github_light'
     end,
   },
 
@@ -1261,7 +1420,7 @@ require('lazy').setup({
   require 'kickstart.plugins.indent_line',
   require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
-  -- require 'kickstart.plugins.neo-tree',
+  require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
   require 'kickstart.plugins.render-markdown',
 

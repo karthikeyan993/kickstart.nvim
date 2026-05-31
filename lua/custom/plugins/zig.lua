@@ -14,8 +14,8 @@ return {
     url = 'https://codeberg.org/ziglang/zig.vim',
     ft = { 'zig', 'zir' },
     init = function()
-      -- Set to 0 to disable automatic `zig fmt` on save
-      vim.g.zig_fmt_autosave = 1
+      -- Conform runs `zig fmt` on save, so keep zig.vim to syntax/ftplugin support.
+      vim.g.zig_fmt_autosave = 0
     end,
   },
 }
