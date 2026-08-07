@@ -7,6 +7,31 @@
 return {
   { 'tpope/vim-fugitive' },
 
+  -- Project-wide find & replace. Telescope's live_grep finds across the
+  -- project but can't rewrite; LSP rename only covers symbols a language
+  -- server knows about. This handles plain text in any filetype.
+  {
+    'MagicDuck/grug-far.nvim',
+    cmd = { 'GrugFar', 'GrugFarWithin' },
+    keys = {
+      -- Capitalised so they don't shadow telescope's <leader>sr (resume) and
+      -- <leader>sw (grep current word).
+      { '<leader>sR', function() require('grug-far').open() end, desc = '[S]earch and [R]eplace (project)' },
+      {
+        '<leader>sR',
+        function() require('grug-far').with_visual_selection() end,
+        mode = 'v',
+        desc = '[S]earch and [R]eplace (selection)',
+      },
+      {
+        '<leader>sW',
+        function() require('grug-far').open { prefills = { search = vim.fn.expand '<cword>' } } end,
+        desc = '[S]earch and replace [W]ord under cursor',
+      },
+    },
+    opts = { headerMaxWidth = 80 },
+  },
+
   -- Diffview: VSCode-like "Source Control" panel for viewing all changes
   {
     'sindrets/diffview.nvim',
@@ -31,13 +56,6 @@ return {
     end,
   },
 
-  -- Amp Plugin
-  {
-    'sourcegraph/amp.nvim',
-    branch = 'main',
-    lazy = false,
-    opts = { auto_start = true, log_level = 'info' },
-  },
 
   -- Test runner for Go and other languages
   {
