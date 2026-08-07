@@ -1384,6 +1384,45 @@ require('lazy').setup({
         end
       end
 
+      -- Parsers to keep installed. The `main` branch of nvim-treesitter has no
+      -- `ensure_installed` option, so install anything missing here ourselves.
+      local ensure_installed = {
+        'bash',
+        'c',
+        'cpp',
+        'css',
+        'diff',
+        'go',
+        'gomod',
+        'gitcommit',
+        'html',
+        'javascript',
+        'jsdoc',
+        'json',
+        'lua',
+        'luadoc',
+        'markdown',
+        'markdown_inline',
+        'python',
+        'query',
+        'rust',
+        'toml',
+        'tsx',
+        'typescript',
+        'vim',
+        'vimdoc',
+        'yaml',
+        'zig',
+      }
+
+      local installed = treesitter.get_installed 'parsers'
+      local missing = vim.tbl_filter(function(lang) return not vim.tbl_contains(installed, lang) end, ensure_installed)
+      if #missing > 0 then treesitter.install(missing) end
+
+      -- Track in-flight installs so a burst of FileType events for the same
+      -- language doesn't kick off duplicate downloads.
+      local installing = {}
+
       vim.api.nvim_create_autocmd('FileType', {
         callback = function(args)
           local buf, filetype = args.buf, args.match
@@ -1395,8 +1434,15 @@ require('lazy').setup({
 
           if vim.tbl_contains(installed_parsers, language) then
             treesitter_try_attach(buf, language)
-          else
-            treesitter_try_attach(buf, language)
+          elseif not installing[language] and vim.tbl_contains(treesitter.get_available(), language) then
+            -- Parser isn't present yet: fetch it, then attach once it lands.
+            installing[language] = true
+            treesitter.install(language):await(function()
+              installing[language] = nil
+              vim.schedule(function()
+                if vim.api.nvim_buf_is_valid(buf) then treesitter_try_attach(buf, language) end
+              end)
+            end)
           end
         end,
       })
