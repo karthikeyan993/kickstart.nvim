@@ -508,18 +508,6 @@ vim.api.nvim_create_autocmd('FileType', {
   end,
 })
 
--- Java: 2 spaces (matches google-java-format default)
-vim.api.nvim_create_autocmd('FileType', {
-  group = indent_augroup,
-  pattern = 'java',
-  callback = function()
-    vim.opt_local.tabstop = 2
-    vim.opt_local.softtabstop = 2
-    vim.opt_local.shiftwidth = 2
-    vim.opt_local.expandtab = true
-  end,
-})
-
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -991,12 +979,6 @@ require('lazy').setup({
         'prettierd',
         'eslint_d',
         'golangci-lint',
-        'google-java-format',
-
-        -- Java language tooling used by nvim-jdtls
-        'jdtls',
-        'java-debug-adapter',
-        'java-test',
       })
 
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
