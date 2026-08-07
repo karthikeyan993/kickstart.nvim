@@ -907,7 +907,13 @@ require('lazy').setup({
       local servers = {
         clangd = {},
         gopls = gopls_cmd ~= '' and { cmd = { gopls_cmd } } or {},
+        -- Python is split across two servers: pyright for type checking, ruff
+        -- for linting/import-sorting. Hover is disabled on ruff so pyright is
+        -- the single source of truth for hover docs.
         pyright = {},
+        ruff = {
+          on_attach = function(client) client.server_capabilities.hoverProvider = false end,
+        },
         rust_analyzer = {
           settings = {
             ['rust-analyzer'] = {
@@ -1027,7 +1033,8 @@ require('lazy').setup({
         zig = { 'zigfmt' },
         zir = { 'zigfmt' },
         c = { 'clang-format' },
-        java = { 'google-java-format' },
+        -- ruff replaces isort + black: sort imports first, then format.
+        python = { 'ruff_organize_imports', 'ruff_format' },
         html = { 'prettierd' },
         css = { 'prettierd' },
         javascript = { 'prettierd' },
