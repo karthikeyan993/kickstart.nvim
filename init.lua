@@ -793,8 +793,15 @@ require('lazy').setup({
         ---@diagnostic disable-next-line: missing-fields
         opts = {},
       },
-      -- Maps LSP server names between nvim-lspconfig and Mason package names.
-      'mason-org/mason-lspconfig.nvim',
+      -- Maps LSP server names between nvim-lspconfig and Mason package names
+      -- (e.g. lua_ls <-> lua-language-server). Must be set up explicitly, not
+      -- just loaded, or its behaviour is undefined. Listed after mason.nvim so
+      -- lazy sets them up in that order.
+      {
+        'mason-org/mason-lspconfig.nvim',
+        -- Set to true to auto-enable servers installed by hand via :MasonInstall.
+        opts = { automatic_enable = false },
+      },
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
       -- Useful status updates for LSP.
